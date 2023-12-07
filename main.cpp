@@ -325,13 +325,6 @@ void handleClient(tcp::socket clientSocket)
             {
                 // Process and send the received message
                 processAndSend(clientSocket, bufferMsg, buffer, bytesRead, clienVars);
-
-                // Check if the client requested to disconnect by pressing F3
-                if (buffer[0] == 'F' && buffer[1] == '3')
-                {
-                    // // std::cout << "Client requested to disconnect. Exiting..." << std::endl;
-                    break;
-                }
             }
             else
             {
