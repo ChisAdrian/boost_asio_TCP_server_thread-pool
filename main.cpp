@@ -7,16 +7,11 @@
 #include <condition_variable>
 #include <map>
 using boost::asio::ip::tcp;
-
-
 const std::string cls = "[2J[H[A";
 const std::string Beep2 = "";
 const std::string Beep3 = "";
 
-
-
 std::atomic<bool> shutdownRequested(false);
-
 
 /**
  * Monitors the shutdownRequested flag and gracefully shuts down the server when requested.
@@ -84,13 +79,15 @@ void processAndSend(tcp::socket &clientSocket, std::string &bufferMsg, const std
         bufferMsg += receivedMessage;
 
     // Detect Enter key (New Line)
+     // Handle actions when Enter key is pressed
     if (receivedMessage == "\r\n")
     {
         /*
         Request server stop
         In real world it is an RESTART
         Server will be an Windows Service ......
-        Or an C#
+        Or an C# :
+        
         using System;
         using System.Diagnostics;
 
@@ -148,7 +145,7 @@ void processAndSend(tcp::socket &clientSocket, std::string &bufferMsg, const std
 
         }
 
-        // Handle actions when Enter key is pressed
+       
 
         if (clienVars["reqScan_Badge"] == "")
         {
