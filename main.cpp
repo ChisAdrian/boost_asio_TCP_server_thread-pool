@@ -14,17 +14,16 @@ const std::string Beep3 = "";
 std::atomic<bool> shutdownRequested(false);
 
 /**
- * Monitors the shutdownRequested flag and gracefully shuts down the server when requested.
+ * Monitors the shutdownRequested flag and gracefully ? shuts down the server when requested.
  *
  * @param ioContext The Boost.Asio IO context managing asynchronous operations.
  * @param acceptor The TCP acceptor listening for incoming connections.
  *
  * This function runs in a separate thread and periodically checks the shutdownRequested flag.
- * When the flag becomes true, it notifies all threads to finish their work and initiates a graceful
  * shutdown by closing the acceptor and stopping the IO context. This ensures that existing connections
  * are allowed to finish processing before terminating the server.
  */
-void shutdownCheck(boost::asio::io_context& ioContext, tcp::acceptor& acceptor)
+void shutdownCheck(boost::asio::io_context &ioContext, tcp::acceptor &acceptor)
 {
     while (!shutdownRequested)
     {
@@ -79,7 +78,7 @@ void processAndSend(tcp::socket &clientSocket, std::string &bufferMsg, const std
         bufferMsg += receivedMessage;
 
     // Detect Enter key (New Line)
-     // Handle actions when Enter key is pressed
+    // Handle actions when Enter key is pressed
     if (receivedMessage == "\r\n")
     {
         /*
@@ -87,7 +86,7 @@ void processAndSend(tcp::socket &clientSocket, std::string &bufferMsg, const std
         In real world it is an RESTART
         Server will be an Windows Service ......
         Or an C# :
-        
+
         using System;
         using System.Diagnostics;
 
@@ -138,19 +137,17 @@ void processAndSend(tcp::socket &clientSocket, std::string &bufferMsg, const std
         }
 
         */
-        if(bufferMsg == "STOPALL"){
-        shutdownRequested = true;
-        clientSocket.close();
-        return;
-
+        if (bufferMsg == "STOPALL")
+        {
+            shutdownRequested = true;
+            clientSocket.close();
+            return;
         }
-
-       
 
         if (clienVars["reqScan_Badge"] == "")
         {
             // Check the database for the scanned badge
-            auto userInfo = mssql_select_vector("SELECT  * FROM WHOISWHO WHERE SHORT_ID='" + bufferMsg + "'",false);
+            auto userInfo = mssql_select_vector("SELECT  * FROM WHOISWHO WHERE SHORT_ID='" + bufferMsg + "'", false);
 
             if (userInfo.size() == 1)
             {
@@ -215,7 +212,6 @@ void processAndSend(tcp::socket &clientSocket, std::string &bufferMsg, const std
     // Triggers without Enter Key
     else if (clienVars["reqScan_Badge"] != "" && clienVars["currentMenu"] == "HOME" && receivedMessage == "1")
     {
-
         bufferMsg = cls + "Recetion\r\nScanSomething\r\n";
         // Send the custom message back to the client
         clienVars["currentMenu"] = "Recetion0";
@@ -233,12 +229,10 @@ void processAndSend(tcp::socket &clientSocket, std::string &bufferMsg, const std
         bufferMsg.clear();
     }
 
-    // Detect F1, F2, and F3 keys   // Triggers without Enter Key
+    // Detect F1, F2, and F3 keys
     else if (receivedMessage == "\x1BOP") // F1 key
     {
-
         std::cout << "F1 key detected!" << std::endl;
-
         // Add your logic to handle the F1 key here
     }
     else if (receivedMessage == "\x1BOQ") // F2 key
@@ -304,7 +298,6 @@ void handleClient(tcp::socket clientSocket)
         {
             std::array<char, 1024> buffer;
             boost::system::error_code error;
-
             // Read data from the client
             std::size_t bytesRead = clientSocket.read_some(boost::asio::buffer(buffer), error);
 
@@ -378,9 +371,7 @@ int main()
         {
             // Each worker thread runs the IO context
             threadPool.emplace_back([&ioContext]()
-            {
-                ioContext.run();
-            });
+                                    { ioContext.run(); });
         }
 
         // Inform that the server has started and is listening on port 12345
@@ -401,7 +392,7 @@ int main()
             clientThread.detach();
         }
 
-        std::cout << "Server stoping..."<< std::endl;
+        std::cout << "Server stoping..." << std::endl;
         // Check if the acceptor is open before closing
         if (acceptor.is_open())
         {
@@ -416,7 +407,6 @@ int main()
             ioContext.stop();
         }
         return 0;
-
     }
     catch (std::exception &e)
     {
