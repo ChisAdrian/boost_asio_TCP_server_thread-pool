@@ -14,41 +14,9 @@ const std::string Beep2 = "";
 const std::string Beep3 = "";
 
 
-/**
- * Global variables and signal handler for handling shutdown requests.
- *
- * shutdownRequested: An atomic boolean variable indicating whether a shutdown has been requested.
- * shutdownCV: A condition variable used to notify threads waiting for a shutdown request.
- *
- * signalHandler: A function that handles the SIGINT and SIGTERM signals.
- * When a SIGINT or SIGTERM signal is received, the shutdownRequested variable is set to true,
- * and all threads waiting on the shutdownCV condition variable are notified.
- *
- * @note The global variables `shutdownRequested` and `shutdownCV` are used to communicate a shutdown request
- *       to various threads in the server application. The signalHandler function sets the shutdownRequested
- *       flag to true upon receiving a SIGINT or SIGTERM signal and notifies all waiting threads through the
- *       shutdownCV condition variable.
- */
-std::atomic<bool> shutdownRequested(false);
-std::condition_variable shutdownCV;
 
-/**
- * Signal handler function for handling SIGINT and SIGTERM signals.
- *
- * @param signal The signal received (SIGINT or SIGTERM).
- *
- * When a SIGINT or SIGTERM signal is received, this function sets the shutdownRequested flag to true,
- * indicating a shutdown request. It then notifies all threads waiting on the shutdownCV condition variable,
- * allowing them to gracefully finish their work.
- */
-void signalHandler(int signal)
-{
-    if (signal == SIGINT || signal == SIGTERM)
-    {
-        shutdownRequested = true;
-        shutdownCV.notify_all(); // Notify all threads waiting on the condition variable
-    }
-}
+std::atomic<bool> shutdownRequested(false);
+
 
 /**
  * Monitors the shutdownRequested flag and gracefully shuts down the server when requested.
@@ -67,14 +35,8 @@ void shutdownCheck(boost::asio::io_context& ioContext, tcp::acceptor& acceptor)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
     }
-
     std::cout << "Server stopping..client requested" << std::endl;
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
-
-    std::cout << "shutdownCV.notify_all();" << std::endl;
-
-    // Notify all threads to finish their work
-    shutdownCV.notify_all();
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
     // Close acceptor and stop ioContext
     std::cout << "acceptor.close();" << std::endl;
@@ -85,8 +47,6 @@ void shutdownCheck(boost::asio::io_context& ioContext, tcp::acceptor& acceptor)
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
     return;
 }
-
-
 
 /**
  * Processes the received message and sends a response back to the client.
@@ -126,6 +86,68 @@ void processAndSend(tcp::socket &clientSocket, std::string &bufferMsg, const std
     // Detect Enter key (New Line)
     if (receivedMessage == "\r\n")
     {
+        /*
+        Request server stop
+        In real world it is an RESTART
+        Server will be an Windows Service ......
+        Or an C#
+        using System;
+        using System.Diagnostics;
+
+        namespace run_once_WMS_batch_Csh
+        {
+            class Program
+            {
+                public static void Main(string[] args)
+                {
+                    Console.WriteLine("Starting...in ");
+                    string execPath = AppDomain.CurrentDomain.BaseDirectory;
+                    Console.WriteLine(execPath);
+
+                        System.Threading.Thread.Sleep(5*1000);
+                        Process pro_ini = new Process();
+                        pro_ini.StartInfo.FileName = "WMS_batch.exe";
+                        pro_ini.StartInfo.WindowStyle = ProcessWindowStyle.Normal;
+                        pro_ini.StartInfo.WorkingDirectory = execPath;
+                        pro_ini.Start();
+                        pro_ini.WaitForExit();
+
+
+                    while (true) // condition
+                    {
+
+                        Process[] pname = Process.GetProcessesByName("WMS_batch");
+
+                        if (pname.Length == 0)
+                        {
+                            Console.WriteLine("Start in ~10 s");
+
+                            System.Threading.Thread.Sleep(10*1000);//10 s
+                            Process pro = new Process();
+                            pro.StartInfo.FileName = "WMS_batch.exe";
+                            pro.StartInfo.WindowStyle = ProcessWindowStyle.Normal;
+                            pro_ini.StartInfo.WorkingDirectory = execPath;
+                            pro.Start();
+                            pro.WaitForExit();
+                        }
+                        else
+                        {
+                            System.Threading.Thread.Sleep(10*1000); //10 s
+                        }
+
+                    }
+                }
+            }
+        }
+
+        */
+        if(bufferMsg == "STOPALL"){
+        shutdownRequested = true;
+        clientSocket.close();
+        return;
+
+        }
+
         // Handle actions when Enter key is pressed
 
         if (clienVars["reqScan_Badge"] == "")
@@ -173,8 +195,6 @@ void processAndSend(tcp::socket &clientSocket, std::string &bufferMsg, const std
 
         if (clienVars["reqScan_Badge"] != "" && clienVars["currentMenu"] == "Imports" && receivedMessage.length() > 0)
         {
-            // Handle actions for Recetion1 menu state
-            // Handle actions for Recetion0 menu state
             clienVars["doc"] = bufferMsg;
 
             bufferMsg = cls + "ImportDoc:" + clienVars["doc"] + "\r\nScanSerial\r\n";
@@ -184,7 +204,6 @@ void processAndSend(tcp::socket &clientSocket, std::string &bufferMsg, const std
 
         if (clienVars["reqScan_Badge"] != "" && clienVars["currentMenu"] == "Imports1" && receivedMessage.length() > 0)
         {
-            // Handle actions for Recetion1 menu state
             std::string tbufferMsg = bufferMsg;
             bufferMsg = cls + "ImportDoc:" + clienVars["doc"] + "\r\n__\r\n";
             bufferMsg += tbufferMsg + "to CHECK";
@@ -195,6 +214,7 @@ void processAndSend(tcp::socket &clientSocket, std::string &bufferMsg, const std
         bufferMsg.clear();
     }
     //! Detect Enter key (New Line) end
+
     // Triggers without Enter Key
     else if (clienVars["reqScan_Badge"] != "" && clienVars["currentMenu"] == "HOME" && receivedMessage == "1")
     {
@@ -205,7 +225,7 @@ void processAndSend(tcp::socket &clientSocket, std::string &bufferMsg, const std
         boost::asio::write(clientSocket, boost::asio::buffer(bufferMsg));
         bufferMsg.clear();
     }
-    // Triggers without Enter Key
+
     else if (clienVars["reqScan_Badge"] != "" && clienVars["currentMenu"] == "HOME" && receivedMessage == "2")
     {
         // Handle actions for F2 key pressed
@@ -219,10 +239,9 @@ void processAndSend(tcp::socket &clientSocket, std::string &bufferMsg, const std
     // Detect F1, F2, and F3 keys   // Triggers without Enter Key
     else if (receivedMessage == "\x1BOP") // F1 key
     {
+
         std::cout << "F1 key detected!" << std::endl;
-        shutdownRequested = true;
-        clientSocket.close();
-        return;
+
         // Add your logic to handle the F1 key here
     }
     else if (receivedMessage == "\x1BOQ") // F2 key
@@ -354,11 +373,6 @@ int main()
 {
     try
     {
-
-        // Setup signal handling for graceful shutdown
-        signal(SIGINT, signalHandler);
-        signal(SIGTERM, signalHandler);
-
         // Create an IO context to manage asynchronous operations
         boost::asio::io_context ioContext;
 
@@ -385,7 +399,6 @@ int main()
         // Create a thread for handling shutdown
         std::thread shutdownThread(shutdownCheck, std::ref(ioContext), std::ref(acceptor));
 
-
         // Accept and handle client connections
         while (!shutdownRequested)
         {
@@ -398,11 +411,7 @@ int main()
             clientThread.detach();
         }
 
-        std::cout << "Server stoping...from exten call"<< std::endl;
-        // Notify all threads to finish their work
-        shutdownCV.notify_all();
-
-        // Perform a graceful shutdown by allowing existing connections to finish processing
+        std::cout << "Server stoping..."<< std::endl;
         // Check if the acceptor is open before closing
         if (acceptor.is_open())
         {
