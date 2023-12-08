@@ -6,10 +6,17 @@
 #include <boost/asio.hpp>
 #include <condition_variable>
 #include <map>
+
 using boost::asio::ip::tcp;
-const std::string cls = "[2J[H[A";
-const std::string Beep2 = "";
-const std::string Beep3 = "";
+
+// ANSI escape sequences for terminal manipulation and beeping.
+const std::string cls = "[2J[H[A";    // Clear screen and move cursor to the home position.
+const std::string Beep2 = "";     // Beep the terminal twice.
+const std::string Beep3 = "";   // Beep the terminal three times.
+
+// Atomic flag to control the server shutdown.
+// When set to 'true', the server will initiate a  shutdown,
+// This flag is accessed and modified in a thread-safe manner using std::atomic.
 
 std::atomic<bool> shutdownRequested(false);
 
